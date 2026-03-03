@@ -17,6 +17,7 @@
 
 import requests
 import os
+import streamlit as st
 from dotenv import load_dotenv
 from database import insert_ioc, insert_cve
 
@@ -333,7 +334,17 @@ def fetch_cve_feed(results_per_page=20):
             return "LOW"
 
     try:
-        response = requests.get(url, params=params, timeout=20)
+        headers = {}
+
+# Try environment variable first (local)
+        if os.getenv("NVD_API_KEY"):
+            headers["apiKey"] = os.getenv("NVD_API_KEY")
+
+        # Then try Streamlit secrets (cloud)
+        elif "NVD_API_KEY" in st.secrets:
+            headers["apiKey"] = st.secrets["NVD_API_KEY"]
+
+        response = requests.get(url, params=params, headers=headers, timeout=20)
         response.raise_for_status()
 
         data         = response.json()
