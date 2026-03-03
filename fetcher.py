@@ -30,7 +30,7 @@ load_dotenv()
 # ─────────────────────────────────────────────
 ABUSEIPDB_API_KEY = os.getenv("ABUSEIPDB_API_KEY", "")
 OTX_API_KEY       = os.getenv("OTX_API_KEY", "")
-
+NVD_API_KEY        =os.getenv("NVD_APPI_KEY","")
 
 # ──────────────────────────────────────────────────────────
 # 1. FETCH FROM ABUSEIPDB
@@ -340,11 +340,10 @@ def fetch_cve_feed(results_per_page=20):
 
         for vuln in vulnerabilities:
             cve_item = vuln.get("cve", {})
-
             cve_id = cve_item.get("id", "")
 
             descriptions = cve_item.get("descriptions", [])
-            description = next(
+            description  = next(
                 (d["value"] for d in descriptions if d.get("lang") == "en"),
                 "No description available."
             )
