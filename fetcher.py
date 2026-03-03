@@ -292,27 +292,8 @@ def fetch_urlhaus(limit=100):
 # 4. FETCH CVE DATA FROM NVD (NIST)
 # ──────────────────────────────────────────────────────────
 def fetch_cve_feed(results_per_page=20):
-    """
-    Fetches recent CVE vulnerability data from NVD (National Vulnerability Database).
     
-    API Endpoint:
-        GET https://services.nvd.nist.gov/rest/json/cves/2.0
 
-    How it works:
-        - Fetches the most recently published CVEs
-        - Extracts CVE ID, description, and CVSS severity score
-        - Stores each CVE in our database
-
-    Parameters:
-        results_per_page (int): Number of CVEs to fetch (default 20)
-
-    Returns:
-        int: Number of new CVEs inserted
-
-    Example CVE response:
-        CVE-2024-1234 — CRITICAL — Score: 9.8
-        "A buffer overflow in XYZ allows remote code execution..."
-    """
     url = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
     params = {
@@ -320,7 +301,17 @@ def fetch_cve_feed(results_per_page=20):
         "startIndex": 0
     }
 
-    # CVSS Score → Severity label mapping
+    # ── Get NVD API Key (Local or Streamlit Cloud) ──
+    nvd_key = os.getenv("NVD_API_KEY") or st.secrets.get("NVD_API_KEY", None)
+
+    headers = {}
+    if nvd_key:
+        headers["apiKey"] = nvd_key
+        print("[✓] Using NVD API Key")
+    else:
+        print("[!] NVD API key not found — using anonymous access (may be rate limited)")
+
+    # ── Severity Mapping ──
     def score_to_severity(score):
         if score is None:
             return "UNKNOWN"
@@ -334,39 +325,32 @@ def fetch_cve_feed(results_per_page=20):
             return "LOW"
 
     try:
-        headers = {}
-
-# Try environment variable first (local)
-        if os.getenv("NVD_API_KEY"):
-            headers["apiKey"] = os.getenv("NVD_API_KEY")
-
-        # Then try Streamlit secrets (cloud)
-        elif "NVD_API_KEY" in st.secrets:
-            headers["apiKey"] = st.secrets["NVD_API_KEY"]
-
         response = requests.get(url, params=params, headers=headers, timeout=20)
+
+        print("NVD Status Code:", response.status_code)
+
         response.raise_for_status()
 
-        data         = response.json()
+        data = response.json()
         vulnerabilities = data.get("vulnerabilities", [])
-        new_count    = 0
+
+        print("Vulnerabilities received:", len(vulnerabilities))
+
+        new_count = 0
 
         for vuln in vulnerabilities:
             cve_item = vuln.get("cve", {})
 
-            # CVE ID (e.g., "CVE-2024-12345")
             cve_id = cve_item.get("id", "")
 
-            # Description — take the English one
             descriptions = cve_item.get("descriptions", [])
-            description  = next(
+            description = next(
                 (d["value"] for d in descriptions if d.get("lang") == "en"),
                 "No description available."
             )
 
-            # CVSS Score — try v3.1 first, then v3.0, then v2.0
             cvss_score = None
-            metrics    = cve_item.get("metrics", {})
+            metrics = cve_item.get("metrics", {})
 
             for version in ["cvssMetricV31", "cvssMetricV30", "cvssMetricV2"]:
                 if version in metrics:
@@ -376,24 +360,28 @@ def fetch_cve_feed(results_per_page=20):
                         pass
                     break
 
-            severity       = score_to_severity(cvss_score)
-            published_date = cve_item.get("published", "")[:10]  # Take only YYYY-MM-DD
+            severity = score_to_severity(cvss_score)
+            published_date = cve_item.get("published", "")[:10]
 
             if cve_id:
                 insert_cve(
-                    cve_id         = cve_id,
-                    description    = description[:500],  # Truncate very long descriptions
-                    severity       = severity,
-                    cvss_score     = cvss_score,
-                    published_date = published_date
+                    cve_id=cve_id,
+                    description=description[:500],
+                    severity=severity,
+                    cvss_score=cvss_score,
+                    published_date=published_date
                 )
                 new_count += 1
 
         print(f"[✓] NVD CVE Feed: Fetched {new_count} CVEs.")
         return new_count
 
-    except requests.exceptions.RequestException as e:
-        print(f"[✗] NVD CVE fetch failed: {e}")
+    except Exception as e:
+        print("[✗] NVD fetch failed:", str(e))
+        try:
+            print("Response text:", response.text)
+        except:
+            pass
         return 0
 
 
