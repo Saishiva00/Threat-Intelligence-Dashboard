@@ -180,10 +180,10 @@ Streamlit (app.py)          ← Web UI layer
 
 ## 👤 Author
 
-Your Name | ECE Graduate | Aspiring Cybersecurity Analyst
+Sai shiva  | ECE Graduate | Aspiring Fullstack Developer
 
-LinkedIn: linkedin.com/in/yourprofile  
-GitHub: github.com/yourusername
+LinkedIn: www.linkedin.com/in/saishivaakula
+GitHub: https://github.com/Saishiva00
 
 ---
 
