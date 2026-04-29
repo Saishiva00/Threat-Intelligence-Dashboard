@@ -41,6 +41,43 @@ COLORS = {
     "text":        "#ffffff",
 }
 
+# ─────────────────────────────────────────────
+# ISO-2 → ISO-3 COUNTRY CODE MAPPING
+# Plotly choropleth works best with 3-letter codes.
+# AbuseIPDB and OTX return 2-letter codes, so we convert.
+# ─────────────────────────────────────────────
+ISO2_TO_ISO3 = {
+    "AF":"AFG","AL":"ALB","DZ":"DZA","AD":"AND","AO":"AGO","AG":"ATG","AR":"ARG",
+    "AM":"ARM","AU":"AUS","AT":"AUT","AZ":"AZE","BS":"BHS","BH":"BHR","BD":"BGD",
+    "BB":"BRB","BY":"BLR","BE":"BEL","BZ":"BLZ","BJ":"BEN","BT":"BTN","BO":"BOL",
+    "BA":"BIH","BW":"BWA","BR":"BRA","BN":"BRN","BG":"BGR","BF":"BFA","BI":"BDI",
+    "CV":"CPV","KH":"KHM","CM":"CMR","CA":"CAN","CF":"CAF","TD":"TCD","CL":"CHL",
+    "CN":"CHN","CO":"COL","KM":"COM","CG":"COG","CD":"COD","CR":"CRI","CI":"CIV",
+    "HR":"HRV","CU":"CUB","CY":"CYP","CZ":"CZE","DK":"DNK","DJ":"DJI","DM":"DMA",
+    "DO":"DOM","EC":"ECU","EG":"EGY","SV":"SLV","GQ":"GNQ","ER":"ERI","EE":"EST",
+    "SZ":"SWZ","ET":"ETH","FJ":"FJI","FI":"FIN","FR":"FRA","GA":"GAB","GM":"GMB",
+    "GE":"GEO","DE":"DEU","GH":"GHA","GR":"GRC","GD":"GRD","GT":"GTM","GN":"GIN",
+    "GW":"GNB","GY":"GUY","HT":"HTI","HN":"HND","HU":"HUN","IS":"ISL","IN":"IND",
+    "ID":"IDN","IR":"IRN","IQ":"IRQ","IE":"IRL","IL":"ISR","IT":"ITA","JM":"JAM",
+    "JP":"JPN","JO":"JOR","KZ":"KAZ","KE":"KEN","KI":"KIR","KP":"PRK","KR":"KOR",
+    "KW":"KWT","KG":"KGZ","LA":"LAO","LV":"LVA","LB":"LBN","LS":"LSO","LR":"LBR",
+    "LY":"LBY","LI":"LIE","LT":"LTU","LU":"LUX","MG":"MDG","MW":"MWI","MY":"MYS",
+    "MV":"MDV","ML":"MLI","MT":"MLT","MH":"MHL","MR":"MRT","MU":"MUS","MX":"MEX",
+    "FM":"FSM","MD":"MDA","MC":"MCO","MN":"MNG","ME":"MNE","MA":"MAR","MZ":"MOZ",
+    "MM":"MMR","NA":"NAM","NR":"NRU","NP":"NPL","NL":"NLD","NZ":"NZL","NI":"NIC",
+    "NE":"NER","NG":"NGA","MK":"MKD","NO":"NOR","OM":"OMN","PK":"PAK","PW":"PLW",
+    "PA":"PAN","PG":"PNG","PY":"PRY","PE":"PER","PH":"PHL","PL":"POL","PT":"PRT",
+    "QA":"QAT","RO":"ROU","RU":"RUS","RW":"RWA","KN":"KNA","LC":"LCA","VC":"VCT",
+    "WS":"WSM","SM":"SMR","ST":"STP","SA":"SAU","SN":"SEN","RS":"SRB","SC":"SYC",
+    "SL":"SLE","SG":"SGP","SK":"SVK","SI":"SVN","SB":"SLB","SO":"SOM","ZA":"ZAF",
+    "SS":"SSD","ES":"ESP","LK":"LKA","SD":"SDN","SR":"SUR","SE":"SWE","CH":"CHE",
+    "SY":"SYR","TW":"TWN","TJ":"TJK","TZ":"TZA","TH":"THA","TL":"TLS","TG":"TGO",
+    "TO":"TON","TT":"TTO","TN":"TUN","TR":"TUR","TM":"TKM","TV":"TUV","UG":"UGA",
+    "UA":"UKR","AE":"ARE","GB":"GBR","US":"USA","UY":"URY","UZ":"UZB","VU":"VUT",
+    "VE":"VEN","VN":"VNM","YE":"YEM","ZM":"ZMB","ZW":"ZWE","HK":"HKG","MO":"MAC",
+    "PS":"PSE","XK":"XKX","TF":"ATF","AQ":"ATA","CK":"COK","NU":"NIU",
+}
+
 CHART_COLORS = [
     "#00d4ff", "#ff4b4b", "#ffa500", "#00ff88",
     "#a855f7", "#ec4899", "#f59e0b", "#10b981"
@@ -204,10 +241,15 @@ def create_world_map(country_df):
         )
         return fig
 
+    # Convert 2-letter codes → 3-letter codes for Plotly
+    df = country_df.copy()
+    df["country"] = df["country"].str.upper().map(ISO2_TO_ISO3)
+    df = df.dropna(subset=["country"])  # Drop rows with unrecognized codes
+
     fig = px.choropleth(
-        country_df,
-        locations              = "country",       # ISO country codes
-        locationmode           = "ISO-3",         # Use 3-letter codes (OTX provides 2-letter, we convert below)
+        df,
+        locations              = "country",       # ISO-3 country codes
+        locationmode           = "ISO-3",
         color                  = "count",
         color_continuous_scale = "Reds",
         title                  = "🌍 Geographic Distribution of Malicious IPs",
