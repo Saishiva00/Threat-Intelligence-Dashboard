@@ -30,7 +30,7 @@ load_dotenv()
 # ─────────────────────────────────────────────
 ABUSEIPDB_API_KEY = os.getenv("ABUSEIPDB_API_KEY", "")
 OTX_API_KEY       = os.getenv("OTX_API_KEY", "")
-NVD_API_KEY        =os.getenv("NVD_APPI_KEY","")
+NVD_API_KEY        =os.getenv("NVD_API_KEY","")
 
 # ──────────────────────────────────────────────────────────
 # 1. FETCH FROM ABUSEIPDB
